@@ -17,6 +17,7 @@ Repositorio: https://github.com/Alejogamer12/BRUGES-FINANZAS-360
 PR #1 (cerrado y fusionado): https://github.com/Alejogamer12/BRUGES-FINANZAS-360/pull/1
 No existe un nuevo PR para esta rama: GitHub rechazó su creación con el mensaje “must be a collaborator”. La rama y el tag sí están publicados.
 La página pública respondió HTTP 200, pero aún sirve el diseño anterior. El diseño claro solicitado y botones Android/Windows sin AAB están preparados en la rama, pero Pages despliega desde main y no se pudo integrar la rama al no poder crear el PR.
+El README público en main también conserva la versión técnica anterior; el texto breve solicitado está en la rama pendiente y no está publicado.
 
 CARPETA DE ENTREGA
 BRUGES-FINANZAS-360-INSTALADORES/BRUGES-FINANZAS-360.apk — 53.096.316 bytes
