@@ -1,42 +1,76 @@
 BRUGES FINANZAS 360 — INFORME DE VERIFICACIÓN
 Fecha: 8 de octubre de 2026
-Versión del código: 1.3.0+4
+Código: 1.3.0+4 | Canal publicado: beta (v1.3.0-history-beta)
+Rama: feature/white-download-page-and-local-history
+Commit que produjo los instaladores: de45782829cfe34018e5f8cb8649f2ae3be41be6
 
-RESUMEN
-La compilación Windows 1.3.0 terminó correctamente. El instalador se compiló con Inno Setup 6.7.3, se instaló de forma silenciosa en una carpeta temporal y la aplicación abrió manteniéndose activa. Android 1.3.0 no se pudo compilar en esta sesión: una prueba mínima de Java confirma que Selector.open() falla antes de Flutter/Gradle con “Unable to establish loopback connection”. El APK/AAB anteriores corresponden a v1.2.0 y se retiraron de la carpeta de entrega para no confundirlos con la versión actual.
+ESTADO GENERAL
+Hay una beta real publicada con APK, AAB y EXE. La compilación de GitHub Actions finalizó correctamente en sus trabajos Windows, Android y publicación de Release. El APK se instaló y abrió en un emulador Android 15/API 35 x86_64. El instalador Windows publicado pasó una instalación silenciosa en una carpeta temporal y su ejecutable abrió. Esto NO equivale a una aplicación financiera lista para producción: no hay despliegue Convex, autenticación de cuentas ni firma de distribución persistente, y no se probaron bancos ni teléfonos físicos.
 
-VERIFICACIONES DE CÓDIGO
+ARCHIVOS Y DESCARGAS
+Release beta: https://github.com/Alejogamer12/BRUGES-FINANZAS-360/releases/tag/v1.3.0-history-beta
+APK: https://github.com/Alejogamer12/BRUGES-FINANZAS-360/releases/download/v1.3.0-history-beta/BRUGES-FINANZAS-360.apk
+Windows: https://github.com/Alejogamer12/BRUGES-FINANZAS-360/releases/download/v1.3.0-history-beta/BRUGES-FINANZAS-360-Setup.exe
+AAB: https://github.com/Alejogamer12/BRUGES-FINANZAS-360/releases/download/v1.3.0-history-beta/BRUGES-FINANZAS-360.aab
+Página: https://alejogamer12.github.io/BRUGES-FINANZAS-360/
+Repositorio: https://github.com/Alejogamer12/BRUGES-FINANZAS-360
+PR #1 (cerrado y fusionado): https://github.com/Alejogamer12/BRUGES-FINANZAS-360/pull/1
+No existe un nuevo PR para esta rama: GitHub rechazó su creación con el mensaje “must be a collaborator”. La rama y el tag sí están publicados.
+La página pública respondió HTTP 200, pero aún sirve el diseño anterior. El diseño claro solicitado y botones Android/Windows sin AAB están preparados en la rama, pero Pages despliega desde main y no se pudo integrar la rama al no poder crear el PR.
+
+CARPETA DE ENTREGA
+BRUGES-FINANZAS-360-INSTALADORES/BRUGES-FINANZAS-360.apk — 53.096.316 bytes
+BRUGES-FINANZAS-360-INSTALADORES/BRUGES-FINANZAS-360.aab — 51.735.568 bytes
+BRUGES-FINANZAS-360-INSTALADORES/BRUGES-FINANZAS-360-Setup.exe — 10.777.997 bytes
+Hay copias en outputs/ con los mismos nombres. Ningún archivo está vacío.
+SHA-256:
+APK: 95BC96E52885CFF5B7ABF719186E73F5BE7546923CAC72AC777645166E71D866
+AAB: EA8835507EA0AC5919B136C06272A662AF0769899100DF34734A98D73B344D8D
+EXE: 7E18726D6FB019A0AC0C375149B3233ADC6FED31D6E53A273BF6FAD7A4AE4604
+
+VERIFICACIÓN DE ARTEFACTOS Y PLATAFORMAS
+- APK verdadero: paquete com.bruges.finanzas360, versionName 1.3.0, versionCode 4, minSdk 24 (Android 7.0), targetSdk 36. Incluye arm64-v8a, armeabi-v7a y x86_64. ZIP alignment correcto; firma APK v2 válida. AAB verificado por jarsigner.
+- APK instalado y abierto en emulador Android 15/API 35, x86_64; se observó la aplicación activa y sus pantallas de movimientos. No se probó un POCO X7 Pro 5G ni un teléfono físico. No se probaron Android 7–14, Android 16, plegables, tabletas ni múltiples fabricantes.
+- El instalador EXE de Release terminó con código 0; el registro de Inno Setup dijo “Installation process succeeded”. Se instalaron los archivos en carpeta temporal y el proceso `bruges_finanzas_360.exe` inició. Prueba ejecutada en este PC Windows x64, no en una matriz de versiones de Windows.
+- EXE sin firma Authenticode (`NotSigned`); Windows puede mostrar advertencias de editor desconocido.
+- El workflow de Actions 37850262852 terminó success en Windows, Android y publish-release: https://github.com/Alejogamer12/BRUGES-FINANZAS-360/actions/runs/37850262852
+- La página y los enlaces directos al APK/EXE respondieron HTTP 200 durante esta revisión.
+
+FIRMA Y ACTUALIZACIONES
+El APK/AAB están firmados con certificado Android Debug autogenerado por CI, no con una clave estable de distribución. Certificado SHA-256: 4fdb5709851f172da81e1064c7ca426b9ed441a803ee9ba74b9c0e5393feecb7. El anterior APK v1.2.0 tiene otro certificado; intentar actualizarlo con el APK 1.3.0 falla por conflicto de firma. No desinstales la versión anterior si necesitas conservar sus datos. Esta beta puede instalarse desde cero, pero no es válida para actualizaciones de Play Store ni para conservar una cadena estable de actualizaciones.
+La página consulta Releases para ofrecer el archivo publicado más reciente. No hay actualizador automático verificado dentro de la app para Android ni Windows, ni publicación en Google Play. Para firma persistente faltan una clave privada de producción y su configuración protegida. El EXE tampoco tiene certificado Authenticode.
+
+PRUEBAS EJECUTADAS EN ESTE CÓDIGO
 - `flutter analyze --no-pub`: aprobado, sin problemas.
-- `flutter test --no-pub`: aprobado, 30 pruebas.
-- `npm test` en `backend`: aprobado, 4 pruebas.
-- `npm run typecheck` en `backend`: aprobado.
-- Android: compilación release intentada con JDK Temurin 21 y con el JDK incluido en Android Studio; ambas fallaron al inicializar el canal local NIO. Se reprodujo el mismo error con un programa Java mínimo en ambos JDK. El intento con un selector alternativo no fue compatible y se descartó.
-- Windows: `flutter build windows --release`: aprobado.
-- Inno Setup 6.7.3 compiló el instalador: aprobado.
-- Instalación de humo en una carpeta temporal: el log indicó “Installation process succeeded”; se generaron los accesos de Inicio y Escritorio. La aplicación ejecutable inició y permaneció activa durante la comprobación.
+- `flutter test --no-pub`: 30 aprobadas. Incluye parsing de notificaciones allowlisted como sugerencias, deduplicación local, filtros, agrupación, exportación CSV/JSON, totales, migración/recuperación del ledger y edición auditada de movimientos manuales.
+- `npm test` (backend): 4 aprobadas.
+- `npm run typecheck` (backend): aprobado.
+- Instalación y apertura real del APK 1.3.0 en el emulador indicado.
+- Instalación y apertura del EXE de Release en este PC Windows x64.
+- Verificación de firma Android, alineación APK, contenido del paquete, hashes y enlaces de Release.
+- La prueba automatizada del repositorio comprueba persistencia del ledger entre reinicios del repositorio. La prueba manual de persistencia tras cerrar y volver a abrir la UI en el emulador quedó inconclusa; no se marca como aprobada.
 
-COMPATIBILIDAD Y ARTEFACTOS
-- La configuración Android del proyecto declara minSdk 24 (Android 7.0), targetSdk 36, paquete `com.bruges.finanzas360`; el APK universal anterior contenía arm64-v8a, armeabi-v7a y x86_64.
-- No se generó ni probó un APK 1.3.0. No se instaló esta versión en emuladores o teléfono físico; no se comprobó un POCO X7 Pro 5G ni otros fabricantes con los cambios actuales.
-- El instalador Windows actual es x64 y tiene 10.974.340 bytes. SHA-256: `AAA6CE61DD04045AEDF843E4DC6CDA60205A992E8BF013FD76ED332FE636948E`.
-- El instalador pasa la prueba de instalación y apertura en este equipo. No está firmado con certificado Authenticode (Windows lo muestra como `NotSigned`); Windows SmartScreen puede mostrar advertencias.
-- El AAB/APK archivados en `work/previous-v1.2.0/` son del release beta v1.2.0, versionCode 3; no son los artefactos de este código 1.3.0+4.
-- No hay clave privada de firma Android de distribución configurada. Las versiones previas usan firma debug: válida para pruebas, pero no para publicación en Google Play ni para futuras actualizaciones con una clave distinta.
+FUNCIONES QUE SÍ EXISTEN EN LA BETA
+- Registro local de ingresos/gastos y vista de movimientos con filtros, búsqueda, fechas y agrupación por día/semana/mes/año.
+- Edición auditada de movimientos manuales; los registros de origen externo no permiten cambiar el dato original.
+- Exportación CSV y JSON, estadísticas locales y símbolos Material incluidos localmente. El glifo account_balance_wallet procede del conjunto Google Material Symbols; el icono BRUGES integra la B personalizada. Se incluyó la licencia Apache 2.0 correspondiente (assets/google/LICENSE).
+- Parser de notificaciones Android con allowlist y manejo de sugerencias no confirmadas; los tests no prueban notificaciones reales de bancos.
+- La app identifica explícitamente el modo “Solo local”; los datos del ledger se guardan en este dispositivo.
 
-FUNCIONES Y SEGURIDAD
-- Se implementó historial local con agrupación por día/semana/mes/año, búsqueda adicional por monto/fecha, edición auditada de movimientos manuales, bloqueo de edición de filas de origen externo y migración del ledger a versión 3 con historial de cambios.
-- Las pruebas cubren filtros, agrupación, persistencia, migración, recuperación de respaldo, duplicados locales, CSV/JSON, enlaces de WhatsApp y flujos de interfaz indicados por cada test. No sustituyen pruebas de usuario real.
-- No existe despliegue Convex configurado ni URL de producción/JWT; autenticación, sincronización entre dispositivos, administración en servidor, correo de recuperación y datos persistentes en la nube no están disponibles ni comprobados. La app guarda movimientos localmente.
-- Las observaciones de avisos Android son sugerencias pendientes de revisión; no confirman pagos ni consultan directamente sistemas bancarios. No se probaron avisos reales de bancos.
-- No se comprobaron biometría, push remoto, actualización automática, uso sin conexión y posterior sincronización en dispositivos reales, ni acceso a información cruzada de varias cuentas.
-- No se proporcionaron credenciales/certificados de producción. La beta no debe presentarse como servicio bancario conectado ni como producto listo para guardar datos financieros sensibles de terceros.
+FUNCIONES NO IMPLEMENTADAS O NO VERIFICADAS — NO DECLARAR COMO TERMINADAS
+- Convex: no hay URL de despliegue ni backend remoto configurado. No existe sincronización Android↔Windows ni datos alojados mientras el PC esté apagado; tampoco se comprobó recuperación online/offline entre dispositivos.
+- Cuentas: no se verificaron registro, login, recuperación por correo, revocación de sesiones ni autenticación real. No hay administración de usuarios/roles del lado servidor ni Panel Administrativo Supremo con autorización real.
+- Transferencias: ninguna integración bancaria oficial. Notificaciones compatibles solo pueden generar sugerencias locales; no prueban que el banco completó el pago, no actualizan saldos como confirmados y no sincronizan a nube.
+- Notificaciones push/Windows, biometría, ubicación/mapas, permisos administrativos remotos, reportes PDF/Excel/Word, copias de seguridad en nube y actualizaciones in-app: no probados o no disponibles.
+- Seguridad de cuentas multiusuario y aislamiento entre usuarios no se pueden certificar sin backend de autenticación activo.
+- No se probó la instalación del APK en teléfonos físicos ni el instalador en otro Windows.
 
-PUBLICACIÓN Y DESCARGAS
-- La automatización `.github/workflows/build-installers.yml` prepara APK+AAB en Linux y el instalador en Windows, y puede publicar assets al crear un tag `v*`.
-- No se publicó esta versión: no se creó un release v1.3.0 porque falta el APK/AAB 1.3.0 compilado/verificado. La página pública puede seguir mostrando el release beta previo.
-- Instalador Windows local: `BRUGES-FINANZAS-360-INSTALADORES/BRUGES-FINANZAS-360-Setup.exe`.
-- Copia del instalador en la carpeta de entregables: `outputs/BRUGES-FINANZAS-360-Setup.exe`.
-- La carpeta de instaladores no contiene ahora un APK/AAB 1.3.0. Los APK/AAB beta v1.2.0 se conservaron bajo `work/previous-v1.2.0/` para evitar etiquetarlos incorrectamente.
+BLOQUEOS PARA UNA VERSIÓN ESTABLE
+1. Integrar la rama en main para desplegar la página clara. Hace falta permiso de colaborador para crear/aceptar el PR; PR #1 ya está fusionado y no se creó otro.
+2. Configurar una clave Android de producción duradera y segura; no guardar claves privadas en el código. Sin ella, los artefactos actuales no son actualizables sobre el APK anterior.
+3. Desplegar y configurar Convex/Auth, reglas de acceso y secretos del entorno.
+4. Conseguir certificado de firma Windows si se requiere identificar el editor.
+5. Probar en POCO X7 Pro 5G y otros dispositivos/versiones objetivo, además de validar integraciones oficiales autorizadas.
 
 VEREDICTO
-Entrega parcial. El instalador Windows 1.3.0 se compiló, instaló y abrió en este equipo. Android 1.3.0 permanece pendiente por el error de loopback de Java que reproduce el entorno. No se afirma que Android, la nube o integraciones bancarias hayan superado pruebas con esta versión. La automatización CI está preparada para generar los archivos Android en un runner de GitHub; sus resultados no se consideran aprobados hasta que el workflow se ejecute y sus assets se inspeccionen.
+Entrega beta parcial auténtica: APK, AAB y Setup.exe existen, están publicados, sus enlaces sirven y pasan las verificaciones descritas. El APK abre en un único emulador Android 15; el instalador abre en este Windows x64. No es una aplicación con backend sincronizado, autenticación, detección bancaria confirmada ni firma de distribución estable. No se afirma compatibilidad universal ni funciones no probadas.
