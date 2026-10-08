@@ -1,0 +1,48 @@
+BRUGES FINANZAS 360 — INFORME DE VERIFICACIÓN ANDROID MULTIMARCA
+Fecha: 8 de octubre de 2026
+Versión compilada: 1.2.0 (Android versionCode 3)
+
+RESUMEN
+El APK universal v1.2.0 se compiló, verificó con apksigner/zipalign y se instaló y abrió en cuatro AVD Android 15 con perfiles de teléfono pequeño, Pixel, tableta y plegable. Se actualizó el AVD Pixel_7 desde el APK anterior conservando paquete, certificado y datos locales observados. No había teléfono físico conectado y no se probó un POCO X7 Pro 5G. Esto no demuestra compatibilidad de cada marca/modelo.
+
+COMPATIBILIDAD ANDROID
+- minSdk 24 (Android 7.0), tomado de flutter.minSdkVersion del SDK actual. Flutter declara soporte Android API 24 y posteriores; API 23 y anteriores no son compatibles con Flutter actual.
+- targetSdk 36; paquete com.bruges.finanzas360; versionName 1.2.0; versionCode 3.
+- APK universal de 50.6 MB con arm64-v8a, armeabi-v7a y x86_64. No se configuraron APK divididos por fabricante/modelo.
+- AVD Pixel_7 (Android 15/API 35, x86_64): instalación/actualización correcta, app abierta y proceso activo.
+- AVD Nexus 5 pequeño (Android 15/API 35, 1080×1920): instalación correcta, app abierta y proceso activo.
+- AVD medium_tablet (Android 15/API 35, 2560×1600): instalación correcta, app abierta y proceso activo.
+- AVD Pixel 9 Pro Fold (Android 15/API 35, 2076×2152): instalación correcta, app abierta y proceso activo.
+- No se pudieron probar versiones de Android distintas: solo estaba instalada la imagen AVD API 35. No se probó API 24 en emulador ni hardware físico, Xiaomi/POCO, Samsung u otras marcas.
+
+ANÁLISIS DEL APK ANTERIOR Y ACTUALIZACIÓN
+- El APK anterior disponible (1.1.0/versionCode 2) y el actual (1.2.0/versionCode 3) tienen el mismo applicationId y el mismo certificado SHA-256: 785345e3545d012b6ecb6a06b62905c4609aa99faccb011d0c3cbf3af82b0fd2. La actualización no presenta conflicto de firma entre estos artefactos.
+- Ambos APK declaran minSdk 24; cualquier teléfono Android 6/API 23 o anterior será rechazado por el instalador.
+- El APK actual pasó verificación de firma v2 y alineación ZIP; `adb install -r` terminó en `Success` en AVD Android 15. Se inició MainActivity en los perfiles probados y no apareció FATAL EXCEPTION.
+- Los registros disponibles no incluyen el mensaje exacto que mostró el teléfono al fallar la instalación anterior. Por eso no se puede atribuir aquel caso a una causa única. Si la instalación existente procede de un APK firmado con otro certificado, Android impedirá actualizar sobre esa instalación; desinstalarla puede borrar sus datos, así que no se recomienda sin una copia.
+- El certificado es Android Debug (firma válida para pruebas e instalación manual), no una clave de distribución propia. Un APK de distribución firmado por otra clave no actualizará sobre instalaciones firmadas con esta clave. Falta una clave Android de producción que el propietario pueda conservar de forma segura.
+- versionCode aumenta de 2 a 3 y los datos de app no se borraron al actualizar el Pixel_7 de prueba; el movimiento local preexistente siguió en el historial en la comprobación previa.
+
+PRUEBAS DE CÓDIGO
+- `flutter analyze --no-pub`: aprobado, 0 problemas.
+- `flutter test --no-pub`: aprobado, 23 pruebas.
+- Pruebas JVM Android `BankNotificationCaptureTest`: XML de Gradle registra 4 pruebas, 0 fallos. Un intento de repetición posterior no pudo iniciar Gradle por `Unable to establish loopback connection` en el entorno.
+- Backend Convex: `npm test` aprobado (4 pruebas) y `npm run typecheck` aprobado. Esto no equivale a despliegue ni prueba de sincronización real.
+- APK: `apksigner verify` aprobado (esquema v2), `zipalign -c -v 4` aprobado, contenido ABI comprobado, actualización e inicio comprobados en los AVD indicados.
+
+ESTADO FUNCIONAL Y LÍMITES
+- Se verificaron instalación/arranque y navegación de preferencias de avisos en el AVD Pixel_7. El permiso de acceso a notificaciones es opcional y Android abre su pantalla oficial de ajustes; no se concedió el permiso en la prueba.
+- No se probaron notificaciones bancarias reales ni cuentas de Nequi, Bancolombia, DaviPlata, dale! o MOVii; tampoco se conectó el AVD a esas apps. Los formatos del banco pueden cambiar y las sugerencias no son confirmaciones bancarias.
+- No hay deployment Convex, URL configurada ni autenticación de clientes; la app está en modo local. La sincronización en vivo Android/Windows, aprobación de permisos desde servidor y recuperación por correo no están verificadas ni disponibles como servicio real.
+- No se verificaron pagos bancarios, biometría, notificaciones push, instalador Windows en esta ronda, ni actualización automática del programa. El EXE de Windows se compiló, pero esta ronda no repitió instalación/arranque del Setup v1.2.0.
+- El ledger local no tiene cifrado de aplicación. La beta no debe usarse para guardar información financiera sensible de otras personas.
+- No se verificó Google Play ni instalación en teléfono físico. AAB existe, pero usa firma debug y no está listo para publicar en Play.
+
+ARTEFACTOS
+- APK: `BRUGES-FINANZAS-360-INSTALADORES/BRUGES-FINANZAS-360.apk`.
+- AAB: `BRUGES-FINANZAS-360-INSTALADORES/BRUGES-FINANZAS-360.aab`.
+- Setup Windows: `BRUGES-FINANZAS-360-INSTALADORES/BRUGES-FINANZAS-360-Setup.exe` (compilado; firma Authenticode y prueba limpia pendientes).
+- La carpeta `outputs/` contiene copias descargables locales. GitHub Release beta se publicará solo con etiqueta de pre-lanzamiento; no se declarará versión estable.
+
+VEREDICTO
+El APK universal válido y actualizable se instaló y abrió en los cuatro perfiles AVD enumerados, todos con Android 15. Compatibilidad con POCO X7 Pro 5G, otros fabricantes, Android 7/API 24 y versiones anteriores a Android 15 queda pendiente de prueba física/AVD. No se afirma compatibilidad universal ni se declara completa la sincronización de nube.
