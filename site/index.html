@@ -61,11 +61,17 @@
       async function loadRelease() {
         const status = document.querySelector('#status');
         try {
-          const response = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=20`, {headers: {'Accept': 'application/vnd.github+json'}});
-          if (!response.ok) throw new Error(`GitHub respondió ${response.status}`);
-          const releases = await response.json();
-          const published = releases.filter((release) => !release.draft);
-          const release = published.find((item) => !item.prerelease) || published[0];
+          const headers = {'Accept': 'application/vnd.github+json'};
+          let response = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, {headers});
+          let release;
+          if (response.ok) {
+            release = await response.json();
+          } else {
+            response = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=5`, {headers});
+            if (!response.ok) throw new Error(`GitHub respondió ${response.status}`);
+            const releases = await response.json();
+            release = releases.find((item) => !item.draft);
+          }
           if (!release) throw new Error('Todavía no hay archivos publicados.');
           document.querySelector('#version').textContent = release.name || release.tag_name;
           const channel = document.querySelector('#channel');
