@@ -42,7 +42,18 @@ ARTEFACTOS
 - APK: `BRUGES-FINANZAS-360-INSTALADORES/BRUGES-FINANZAS-360.apk`.
 - AAB: `BRUGES-FINANZAS-360-INSTALADORES/BRUGES-FINANZAS-360.aab`.
 - Setup Windows: `BRUGES-FINANZAS-360-INSTALADORES/BRUGES-FINANZAS-360-Setup.exe` (compilado; firma Authenticode y prueba limpia pendientes).
-- La carpeta `outputs/` contiene copias descargables locales. GitHub Release beta se publicará solo con etiqueta de pre-lanzamiento; no se declarará versión estable.
+- La carpeta `outputs/` contiene copias descargables locales. GitHub Release se publicó con etiqueta de pre-lanzamiento; no se declara versión estable.
+
+DESCARGAS PÚBLICAS VERIFICADAS
+- Página de descargas: https://alejogamer12.github.io/BRUGES-FINANZAS-360/ (selecciona automáticamente la versión estable más reciente; mientras no exista, muestra la beta reciente).
+- Release beta: https://github.com/Alejogamer12/BRUGES-FINANZAS-360/releases/tag/v1.2.0-compat-beta.
+- APK directo: https://github.com/Alejogamer12/BRUGES-FINANZAS-360/releases/download/v1.2.0-compat-beta/BRUGES-FINANZAS-360.apk — 53.047.204 bytes; SHA-256 `CDF8E05399AB4E2A5D08D9C81C99BBDD258B0A3983B3D7BAC492DC44E3A7FB1D`.
+- Setup directo: https://github.com/Alejogamer12/BRUGES-FINANZAS-360/releases/download/v1.2.0-compat-beta/BRUGES-FINANZAS-360-Setup.exe — 10.963.953 bytes; SHA-256 `4BAF90DEB669FE1B365F959D824E07C018B1A8AE345E725F750BFB2160B44440`.
+- AAB: https://github.com/Alejogamer12/BRUGES-FINANZAS-360/releases/download/v1.2.0-compat-beta/BRUGES-FINANZAS-360.aab — 51.664.344 bytes; SHA-256 `BFEBEA5E574692AEB3BE00D872E572D5289E6420E92388CF6C3072C805AAA8F3`.
+- GitHub confirmó los tres assets cargados con esos tamaños y digest SHA-256; los tres enlaces dieron HTTP 200 y Content-Length coincidente.
+- GitHub Pages se desplegó correctamente (workflow run 37845945471, conclusión success); la página pública respondió HTTP 200.
 
 VEREDICTO
 El APK universal válido y actualizable se instaló y abrió en los cuatro perfiles AVD enumerados, todos con Android 15. Compatibilidad con POCO X7 Pro 5G, otros fabricantes, Android 7/API 24 y versiones anteriores a Android 15 queda pendiente de prueba física/AVD. No se afirma compatibilidad universal ni se declara completa la sincronización de nube.
+
+
