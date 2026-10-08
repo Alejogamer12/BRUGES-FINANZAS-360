@@ -1,4 +1,5 @@
 import '../domain/money_movement.dart';
+import '../domain/currency.dart';
 
 List<MoneyMovement> filterMovements(
   Iterable<MoneyMovement> movements, {
@@ -20,13 +21,23 @@ List<MoneyMovement> filterMovements(
     if (currency != null && movement.currency != currency) return false;
     if (sourceName != null && movement.sourceName != sourceName) return false;
     if (origin != null && movement.origin != origin) return false;
-    if (needle.isNotEmpty &&
-        !'${movement.category} ${movement.note} ${movement.sourceName ?? ''} ${movement.counterparty ?? ''} ${movement.reference ?? ''} ${movement.method ?? ''}'
-            .toLowerCase()
-            .contains(needle)) {
-      return false;
-    }
     final createdAt = movement.createdAt.toLocal();
+    if (needle.isNotEmpty) {
+      final textFields =
+          '${movement.category} ${movement.note} ${movement.sourceName ?? ''} ${movement.counterparty ?? ''} ${movement.reference ?? ''} ${movement.method ?? ''} ${movement.currency} ${createdAt.year.toString().padLeft(4, '0')}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')}'
+              .toLowerCase();
+      final formattedAmount = formatMinorAmount(
+        movement.amountMinor,
+        movement.currency,
+      ).toLowerCase();
+      final amountDigits = formattedAmount.replaceAll(RegExp(r'\D'), '');
+      final queryDigits = needle.replaceAll(RegExp(r'\D'), '');
+      if (!textFields.contains(needle) &&
+          !formattedAmount.contains(needle) &&
+          (queryDigits.isEmpty || !amountDigits.contains(queryDigits))) {
+        return false;
+      }
+    }
     if (start != null && createdAt.isBefore(start)) return false;
     if (endExclusive != null && !createdAt.isBefore(endExclusive)) return false;
     return true;

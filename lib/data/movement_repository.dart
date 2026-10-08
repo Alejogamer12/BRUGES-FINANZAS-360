@@ -7,17 +7,22 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../domain/money_movement.dart';
+import '../domain/movement_revision.dart';
 
 class MovementRepository {
-  MovementRepository._(this._file) : _memory = null;
+  MovementRepository._(this._file) : _memory = null, _memoryChanges = null;
 
-  MovementRepository.inMemory() : _file = null, _memory = <MoneyMovement>[];
+  MovementRepository.inMemory()
+    : _file = null,
+      _memory = <MoneyMovement>[],
+      _memoryChanges = <MovementRevision>[];
 
   static const _dataChannel = MethodChannel('com.bruges.finanzas360/data');
   static const _uuid = Uuid();
 
   final File? _file;
   final List<MoneyMovement>? _memory;
+  final List<MovementRevision>? _memoryChanges;
   Future<void> _writeTail = Future<void>.value();
 
   Directory? get dataDirectory => _file?.parent;
@@ -30,7 +35,9 @@ class MovementRepository {
       await backup.rename(file.path);
     }
     if (!await file.exists()) {
-      await file.writeAsString(jsonEncode({'version': 2, 'movements': []}));
+      await file.writeAsString(
+        jsonEncode({'version': 3, 'movements': [], 'changeHistory': []}),
+      );
     }
     return MovementRepository._(file);
   }
@@ -96,6 +103,73 @@ class MovementRepository {
     });
   }
 
+  Future<bool> updateManualMovement(MoneyMovement movement) {
+    if (movement.origin != MovementOrigin.manual) return Future.value(false);
+    return _serialize(() async {
+      if (_memory case final memory?) {
+        final index = memory.indexWhere((row) => row.id == movement.id);
+        if (index < 0 || memory[index].origin != MovementOrigin.manual) {
+          return false;
+        }
+        final before = memory[index];
+        memory[index] = movement;
+        _memoryChanges!.insert(
+          0,
+          MovementRevision(
+            movementId: movement.id,
+            changedAt: DateTime.now().toUtc(),
+            before: before.toJson(),
+            after: movement.toJson(),
+          ),
+        );
+        return true;
+      }
+
+      final data = await _readData();
+      final rows = data['movements']! as List<Object?>;
+      final index = rows.indexWhere(
+        (row) => (row! as Map<String, Object?>)['id'] == movement.id,
+      );
+      if (index < 0) return false;
+      final before = MoneyMovement.fromJson(
+        Map<String, Object?>.from(rows[index]! as Map),
+      );
+      if (before.origin != MovementOrigin.manual) return false;
+      final history = data['changeHistory']! as List<Object?>;
+      history.insert(
+        0,
+        MovementRevision(
+          movementId: movement.id,
+          changedAt: DateTime.now().toUtc(),
+          before: before.toJson(),
+          after: movement.toJson(),
+        ).toJson(),
+      );
+      rows[index] = movement.toJson();
+      await _writeData(data);
+      return true;
+    });
+  }
+
+  Future<List<MovementRevision>> listMovementChanges(String movementId) {
+    return _serialize(() async {
+      if (_memory != null) {
+        return _memoryChanges!
+            .where((revision) => revision.movementId == movementId)
+            .toList();
+      }
+      final data = await _readData();
+      return (data['changeHistory']! as List<Object?>)
+          .map(
+            (row) => MovementRevision.fromJson(
+              Map<String, Object?>.from(row! as Map),
+            ),
+          )
+          .where((revision) => revision.movementId == movementId)
+          .toList();
+    });
+  }
+
   Future<Map<String, Object?>> _readData() async {
     try {
       final decoded =
@@ -105,7 +179,7 @@ class MovementRepository {
           'El archivo de movimientos no tiene un formato compatible.',
         );
       }
-      if (decoded['version'] == 1) {
+      if (decoded['version'] == 1 || decoded['version'] == 2) {
         final migratedRows = (decoded['movements']! as List<Object?>).map((
           row,
         ) {
@@ -113,13 +187,18 @@ class MovementRepository {
         }).toList();
         final migrated = <String, Object?>{
           ...decoded,
-          'version': 2,
+          'version': 3,
           'movements': migratedRows,
+          'changeHistory': decoded['changeHistory'] is List<Object?>
+              ? decoded['changeHistory']
+              : <Object?>[],
         };
         await _writeData(migrated);
         return migrated;
       }
-      if (decoded['version'] == 2) return decoded;
+      if (decoded['version'] == 3 && decoded['changeHistory'] is List) {
+        return decoded;
+      }
       throw const FormatException(
         'El archivo de movimientos tiene una versión no compatible.',
       );
@@ -137,7 +216,8 @@ class MovementRepository {
     try {
       final recovered =
           jsonDecode(await backup.readAsString()) as Map<String, Object?>;
-      if (recovered['version'] != 2 || recovered['movements'] is! List) {
+      if ((recovered['version'] != 2 && recovered['version'] != 3) ||
+          recovered['movements'] is! List) {
         return null;
       }
       for (final row in recovered['movements']! as List<Object?>) {
@@ -153,7 +233,14 @@ class MovementRepository {
     final file = _file!;
     final temp = File('${file.path}.tmp');
     final backup = File('${file.path}.bak');
-    await temp.writeAsString(jsonEncode({...data, 'version': 2}), flush: true);
+    await temp.writeAsString(
+      jsonEncode({
+        ...data,
+        'version': 3,
+        'changeHistory': data['changeHistory'] ?? <Object?>[],
+      }),
+      flush: true,
+    );
     if (await backup.exists()) await backup.delete();
     if (await file.exists()) await file.rename(backup.path);
     try {

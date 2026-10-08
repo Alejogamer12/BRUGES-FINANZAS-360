@@ -15,6 +15,7 @@ import 'domain/movement_totals.dart';
 import 'services/whatsapp_contacts.dart';
 import 'services/movement_export_service.dart';
 import 'services/movement_filter.dart';
+import 'services/movement_grouping.dart';
 import 'services/bank_notification_parser.dart';
 
 void main() {
@@ -358,6 +359,131 @@ class _FinanceHomeState extends State<_FinanceHome>
     );
   }
 
+  Future<void> _showMovementDetails(MoneyMovement movement) async {
+    final changes = await widget.repository.listMovementChanges(movement.id);
+    if (!mounted) return;
+    final editRequested = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Detalle del movimiento'),
+        content: SizedBox(
+          width: 460,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _detailLine(
+                  'Valor',
+                  formatMinorAmount(movement.amountMinor, movement.currency),
+                ),
+                _detailLine(
+                  'Tipo',
+                  movement.kind == MovementKind.income ? 'Ingreso' : 'Gasto',
+                ),
+                _detailLine('Categoría', movement.category),
+                _detailLine(
+                  'Fecha',
+                  DateFormat('dd/MM/yyyy · HH:mm')
+                      .format(movement.createdAt.toLocal()),
+                ),
+                if (movement.note.isNotEmpty)
+                  _detailLine('Observación', movement.note),
+                if (movement.sourceName != null)
+                  _detailLine('Entidad', movement.sourceName!),
+                if (movement.counterparty != null)
+                  _detailLine('Contraparte', movement.counterparty!),
+                if (movement.reference != null)
+                  _detailLine('Referencia', movement.reference!),
+                if (movement.method != null)
+                  _detailLine('Método', movement.method!),
+                if (movement.reportedStatus != null)
+                  _detailLine('Estado informado', movement.reportedStatus!),
+                _detailLine('Origen', movement.origin.name),
+                _detailLine('Verificación', switch (movement.verification) {
+                  MovementVerification.userProvided => 'Dato del usuario',
+                  MovementVerification.unverified =>
+                    'No verificado por el banco',
+                  MovementVerification.userReviewed =>
+                    'Revisado por el usuario',
+                  MovementVerification.userConfirmed =>
+                    'Confirmado por el usuario',
+                }),
+                const SizedBox(height: 12),
+                Text(
+                  'Historial de modificaciones (${changes.length})',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                if (changes.isEmpty)
+                  const Text('Sin modificaciones registradas.')
+                else
+                  for (final change in changes)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        '${DateFormat('dd/MM/yyyy HH:mm').format(change.changedAt.toLocal())}: '
+                        '${change.before['category']} → ${change.after['category']} · '
+                        '${change.before['amountMinor']} → ${change.after['amountMinor']} unidades menores',
+                      ),
+                    ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cerrar'),
+          ),
+          if (movement.origin == MovementOrigin.manual)
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              icon: const MaterialSymbol('edit'),
+              label: const Text('Editar registro'),
+            ),
+        ],
+      ),
+    );
+    if (editRequested != true || !mounted) return;
+
+    final updated = await showDialog<MoneyMovement>(
+      context: context,
+      builder: (dialogContext) => _MovementDialog(
+        repository: widget.repository,
+        initialId: movement.id,
+        initialKind: movement.kind,
+        initialAmountMinor: movement.amountMinor,
+        initialCurrency: movement.currency,
+        initialCategory: movement.category,
+        initialNote: movement.note,
+        initialCreatedAt: movement.createdAt,
+        initialSyncState: movement.syncState,
+        origin: movement.origin,
+        verification: movement.verification,
+      ),
+    );
+    if (updated == null || !mounted) return;
+    final saved = await widget.repository.updateManualMovement(updated);
+    if (!mounted) return;
+    if (saved) {
+      _reload();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cambio guardado con historial local.')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Este movimiento externo no se puede modificar aquí.'),
+        ),
+      );
+    }
+  }
+
+  Widget _detailLine(String label, String value) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text('$label: $value'),
+  );
+
   Future<void> _exportMovements(
     List<MoneyMovement> movements, {
     required bool asCsv,
@@ -516,6 +642,7 @@ class _FinanceHomeState extends State<_FinanceHome>
           ),
           1 => _MovementsPage(
             movements: movements,
+            onOpenMovement: _showMovementDetails,
             onExportCsv: (rows) => _exportMovements(rows, asCsv: true),
             onExportJson: (rows) => _exportMovements(rows, asCsv: false),
           ),
@@ -838,11 +965,13 @@ class _MetricCard extends StatelessWidget {
 class _MovementsPage extends StatefulWidget {
   const _MovementsPage({
     required this.movements,
+    required this.onOpenMovement,
     required this.onExportCsv,
     required this.onExportJson,
   });
 
   final List<MoneyMovement> movements;
+  final Future<void> Function(MoneyMovement movement) onOpenMovement;
   final Future<void> Function(List<MoneyMovement>) onExportCsv;
   final Future<void> Function(List<MoneyMovement>) onExportJson;
 
@@ -856,6 +985,7 @@ class _MovementsPageState extends State<_MovementsPage> {
   String? _currency;
   String? _sourceName;
   MovementOrigin? _origin;
+  MovementGroupPeriod _grouping = MovementGroupPeriod.day;
   DateTimeRange? _dateRange;
 
   @override
@@ -886,173 +1016,247 @@ class _MovementsPageState extends State<_MovementsPage> {
       from: _dateRange?.start,
       to: _dateRange?.end,
     );
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 100),
-      children: [
-        Text(
-          'Movimientos',
-          style: Theme.of(context).textTheme.headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          '${movements.length} de ${widget.movements.length} registros locales',
-        ),
-        const SizedBox(height: 18),
-        TextField(
-          controller: _search,
-          decoration: const InputDecoration(
-            labelText: 'Buscar categoría o nota',
-            prefixIcon: MaterialSymbol('search'),
-          ),
-          onChanged: (_) => setState(() {}),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 10,
-          runSpacing: 8,
-          children: [
-            SizedBox(
-              width: 170,
-              child: DropdownButtonFormField<MovementKind?>(
-                initialValue: _kind,
-                decoration: const InputDecoration(labelText: 'Tipo'),
-                items: const [
-                  DropdownMenuItem(value: null, child: Text('Todos')),
-                  DropdownMenuItem(
-                    value: MovementKind.income,
-                    child: Text('Ingreso'),
-                  ),
-                  DropdownMenuItem(
-                    value: MovementKind.expense,
-                    child: Text('Gasto'),
-                  ),
-                ],
-                onChanged: (value) => setState(() => _kind = value),
-              ),
-            ),
-            SizedBox(
-              width: 170,
-              child: DropdownButtonFormField<String?>(
-                initialValue: _currency,
-                decoration: const InputDecoration(labelText: 'Moneda'),
-                items: [
-                  const DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text('Todas'),
-                  ),
-                  for (final code in currencyNames.keys)
-                    DropdownMenuItem<String?>(value: code, child: Text(code)),
-                ],
-                onChanged: (value) => setState(() => _currency = value),
-              ),
-            ),
-            SizedBox(
-              width: 190,
-              child: DropdownButtonFormField<String?>(
-                initialValue: _sourceName,
-                decoration: const InputDecoration(labelText: 'Entidad'),
-                items: [
-                  const DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text('Todas'),
-                  ),
-                  for (final source in bankNotificationPackages.values.toSet())
-                    DropdownMenuItem<String?>(
-                      value: source,
-                      child: Text(source),
-                    ),
-                ],
-                onChanged: (value) => setState(() => _sourceName = value),
-              ),
-            ),
-            SizedBox(
-              width: 190,
-              child: DropdownButtonFormField<MovementOrigin?>(
-                initialValue: _origin,
-                decoration: const InputDecoration(labelText: 'Origen'),
-                items: const [
-                  DropdownMenuItem<MovementOrigin?>(
-                    value: null,
-                    child: Text('Todos los orígenes'),
-                  ),
-                  DropdownMenuItem(
-                    value: MovementOrigin.notification,
-                    child: Text('Notificación'),
-                  ),
-                  DropdownMenuItem(
-                    value: MovementOrigin.manual,
-                    child: Text('Manual'),
-                  ),
-                  DropdownMenuItem(
-                    value: MovementOrigin.imported,
-                    child: Text('Importado'),
-                  ),
-                  DropdownMenuItem(
-                    value: MovementOrigin.officialIntegration,
-                    child: Text('Integración oficial'),
-                  ),
-                ],
-                onChanged: (value) => setState(() => _origin = value),
-              ),
-            ),
-            OutlinedButton.icon(
-              onPressed: _chooseDateRange,
-              icon: const MaterialSymbol('calendar_month'),
-              label: Text(
-                _dateRange == null
-                    ? 'Fechas'
-                    : '${DateFormat('dd/MM').format(_dateRange!.start)}–${DateFormat('dd/MM').format(_dateRange!.end)}',
-              ),
-            ),
-            if (_dateRange != null || _sourceName != null || _origin != null)
-              IconButton(
-                tooltip: 'Quitar filtros adicionales',
-                onPressed: () => setState(() {
-                  _dateRange = null;
-                  _sourceName = null;
-                  _origin = null;
-                }),
-                icon: const MaterialSymbol('close'),
-              ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 10,
-          children: [
-            OutlinedButton.icon(
-              onPressed: () => widget.onExportCsv(movements),
-              icon: const MaterialSymbol('table_view'),
-              label: const Text('Exportar CSV'),
-            ),
-            OutlinedButton.icon(
-              onPressed: () => widget.onExportJson(movements),
-              icon: const MaterialSymbol('data_object'),
-              label: const Text('Exportar JSON'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        if (movements.isEmpty)
-          const _EmptyState(
-            icon: 'receipt_long',
-            title: 'Tu historial está vacío',
-            message: 'Los registros que agregues aparecerán aquí.',
-          )
-        else
-          ...movements.map((movement) => _MovementTile(movement: movement)),
-        const SizedBox(height: 18),
-        const _LocalOnlyNotice(),
+    final rows = <_MovementHistoryRow>[
+      for (final group in groupMovements(movements, period: _grouping)) ...[
+        _MovementHistoryRow.header(group.label),
+        for (final movement in group.movements)
+          _MovementHistoryRow.movement(movement),
       ],
+    ];
+    final header = <Widget>[
+      Text(
+        'Movimientos',
+        style: Theme.of(context).textTheme.headlineSmall
+            ?.copyWith(fontWeight: FontWeight.w800),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        '${movements.length} de ${widget.movements.length} registros locales',
+      ),
+      const SizedBox(height: 18),
+      TextField(
+        controller: _search,
+        decoration: const InputDecoration(
+          labelText: 'Buscar nombre, valor, entidad, referencia o fecha',
+          prefixIcon: MaterialSymbol('search'),
+        ),
+        onChanged: (_) => setState(() {}),
+      ),
+      const SizedBox(height: 10),
+      Wrap(
+        spacing: 10,
+        runSpacing: 8,
+        children: [
+          SizedBox(
+            width: 170,
+            child: DropdownButtonFormField<MovementKind?>(
+              isExpanded: true,
+              initialValue: _kind,
+              decoration: const InputDecoration(labelText: 'Tipo'),
+              items: const [
+                DropdownMenuItem(value: null, child: Text('Todos')),
+                DropdownMenuItem(
+                  value: MovementKind.income,
+                  child: Text('Ingreso'),
+                ),
+                DropdownMenuItem(
+                  value: MovementKind.expense,
+                  child: Text('Gasto'),
+                ),
+              ],
+              onChanged: (value) => setState(() => _kind = value),
+            ),
+          ),
+          SizedBox(
+            width: 170,
+            child: DropdownButtonFormField<String?>(
+              isExpanded: true,
+              initialValue: _currency,
+              decoration: const InputDecoration(labelText: 'Moneda'),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('Todas'),
+                ),
+                for (final code in currencyNames.keys)
+                  DropdownMenuItem<String?>(value: code, child: Text(code)),
+              ],
+              onChanged: (value) => setState(() => _currency = value),
+            ),
+          ),
+          SizedBox(
+            width: 190,
+            child: DropdownButtonFormField<String?>(
+              isExpanded: true,
+              initialValue: _sourceName,
+              decoration: const InputDecoration(labelText: 'Entidad'),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('Todas'),
+                ),
+                for (final source in bankNotificationPackages.values.toSet())
+                  DropdownMenuItem<String?>(value: source, child: Text(source)),
+              ],
+              onChanged: (value) => setState(() => _sourceName = value),
+            ),
+          ),
+          SizedBox(
+            width: 190,
+            child: DropdownButtonFormField<MovementOrigin?>(
+              isExpanded: true,
+              initialValue: _origin,
+              decoration: const InputDecoration(labelText: 'Origen'),
+              items: const [
+                DropdownMenuItem<MovementOrigin?>(
+                  value: null,
+                  child: Text('Todos'),
+                ),
+                DropdownMenuItem(
+                  value: MovementOrigin.notification,
+                  child: Text('Notificación'),
+                ),
+                DropdownMenuItem(
+                  value: MovementOrigin.manual,
+                  child: Text('Manual'),
+                ),
+                DropdownMenuItem(
+                  value: MovementOrigin.imported,
+                  child: Text('Importado'),
+                ),
+                DropdownMenuItem(
+                  value: MovementOrigin.officialIntegration,
+                  child: Text('Integración oficial'),
+                ),
+              ],
+              onChanged: (value) => setState(() => _origin = value),
+            ),
+          ),
+          SizedBox(
+            width: 190,
+            child: DropdownButtonFormField<MovementGroupPeriod>(
+              isExpanded: true,
+              initialValue: _grouping,
+              decoration: const InputDecoration(labelText: 'Agrupar por'),
+              items: const [
+                DropdownMenuItem(
+                  value: MovementGroupPeriod.day,
+                  child: Text('Día'),
+                ),
+                DropdownMenuItem(
+                  value: MovementGroupPeriod.week,
+                  child: Text('Semana'),
+                ),
+                DropdownMenuItem(
+                  value: MovementGroupPeriod.month,
+                  child: Text('Mes'),
+                ),
+                DropdownMenuItem(
+                  value: MovementGroupPeriod.year,
+                  child: Text('Año'),
+                ),
+              ],
+              onChanged: (value) {
+                if (value != null) setState(() => _grouping = value);
+              },
+            ),
+          ),
+          OutlinedButton.icon(
+            onPressed: _chooseDateRange,
+            icon: const MaterialSymbol('calendar_month'),
+            label: Text(
+              _dateRange == null
+                  ? 'Fechas'
+                  : '${DateFormat('dd/MM').format(_dateRange!.start)}–${DateFormat('dd/MM').format(_dateRange!.end)}',
+            ),
+          ),
+          if (_dateRange != null || _sourceName != null || _origin != null)
+            IconButton(
+              tooltip: 'Quitar filtros adicionales',
+              onPressed: () => setState(() {
+                _dateRange = null;
+                _sourceName = null;
+                _origin = null;
+              }),
+              icon: const MaterialSymbol('close'),
+            ),
+        ],
+      ),
+      const SizedBox(height: 10),
+      Wrap(
+        spacing: 10,
+        children: [
+          OutlinedButton.icon(
+            onPressed: () => widget.onExportCsv(movements),
+            icon: const MaterialSymbol('table_view'),
+            label: const Text('Exportar CSV'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => widget.onExportJson(movements),
+            icon: const MaterialSymbol('data_object'),
+            label: const Text('Exportar JSON'),
+          ),
+        ],
+      ),
+      const SizedBox(height: 18),
+    ];
+    final empty = movements.isEmpty;
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 100),
+      itemCount: header.length + (empty ? 3 : rows.length + 2),
+      itemBuilder: (context, index) {
+        if (index < header.length) return header[index];
+        final rowIndex = index - header.length;
+        if (empty) {
+          return switch (rowIndex) {
+            0 => const _EmptyState(
+              icon: 'receipt_long',
+              title: 'Tu historial está vacío',
+              message: 'Los registros que agregues aparecerán aquí.',
+            ),
+            1 => const SizedBox(height: 18),
+            _ => const _LocalOnlyNotice(),
+          };
+        }
+        if (rowIndex < rows.length) {
+          final row = rows[rowIndex];
+          if (row.groupLabel case final label?) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 12, bottom: 6),
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: const Color(0xFF52665B),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            );
+          }
+          return _MovementTile(
+            movement: row.movement!,
+            onTap: () => widget.onOpenMovement(row.movement!),
+          );
+        }
+        if (rowIndex == rows.length) return const SizedBox(height: 18);
+        return const _LocalOnlyNotice();
+      },
     );
   }
 }
 
+class _MovementHistoryRow {
+  const _MovementHistoryRow.header(this.groupLabel) : movement = null;
+  const _MovementHistoryRow.movement(this.movement) : groupLabel = null;
+
+  final String? groupLabel;
+  final MoneyMovement? movement;
+}
+
 class _MovementTile extends StatelessWidget {
-  const _MovementTile({required this.movement});
+  const _MovementTile({required this.movement, this.onTap});
 
   final MoneyMovement movement;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1082,6 +1286,7 @@ class _MovementTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 9),
       child: ListTile(
+        onTap: onTap,
         leading: CircleAvatar(
           backgroundColor: isIncome
               ? const Color(0xFFE7F3EC)
@@ -1196,7 +1401,7 @@ class _SettingsPage extends StatelessWidget {
         const Card(
           child: ListTile(
             leading: MaterialSymbol('account_circle'),
-            title: Text('Versión 1.2.0'),
+            title: Text('Versión 1.3.0-beta'),
             subtitle: Text('BRUGES FINANZAS 360'),
           ),
         ),
@@ -1357,9 +1562,11 @@ class _MovementDialog extends StatefulWidget {
     this.initialId,
     this.initialKind,
     this.initialAmountMinor,
+    this.initialCurrency = 'COP',
     this.initialCategory = '',
     this.initialNote = '',
     this.initialCreatedAt,
+    this.initialSyncState = MovementSyncState.pending,
     this.origin = MovementOrigin.manual,
     this.verification = MovementVerification.userProvided,
     this.sourceName,
@@ -1373,9 +1580,11 @@ class _MovementDialog extends StatefulWidget {
   final String? initialId;
   final MovementKind? initialKind;
   final int? initialAmountMinor;
+  final String initialCurrency;
   final String initialCategory;
   final String initialNote;
   final DateTime? initialCreatedAt;
+  final MovementSyncState initialSyncState;
   final MovementOrigin origin;
   final MovementVerification verification;
   final String? sourceName;
@@ -1394,12 +1603,13 @@ class _MovementDialogState extends State<_MovementDialog> {
   late final TextEditingController _category;
   late final TextEditingController _note;
   late MovementKind _kind;
-  String _currency = 'COP';
+  late String _currency;
 
   @override
   void initState() {
     super.initState();
     _kind = widget.initialKind ?? MovementKind.expense;
+    _currency = widget.initialCurrency;
     final amountMinor = widget.initialAmountMinor;
     _amount = TextEditingController(
       text: amountMinor == null
@@ -1433,6 +1643,7 @@ class _MovementDialogState extends State<_MovementDialog> {
         category: _category.text.trim(),
         note: _note.text.trim(),
         createdAt: widget.initialCreatedAt ?? DateTime.now().toUtc(),
+        syncState: widget.initialSyncState,
         origin: widget.origin,
         verification: widget.verification,
         sourceName: widget.sourceName,
@@ -1450,6 +1661,8 @@ class _MovementDialogState extends State<_MovementDialog> {
       title: Text(
         widget.origin == MovementOrigin.notification
             ? 'Completar movimiento detectado'
+            : widget.initialId != null
+            ? 'Editar movimiento'
             : 'Nuevo movimiento',
       ),
       content: Form(
@@ -1496,19 +1709,17 @@ class _MovementDialogState extends State<_MovementDialog> {
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 key: const Key('movement-currency'),
+                isExpanded: true,
                 initialValue: _currency,
                 decoration: const InputDecoration(labelText: 'Moneda'),
                 items: [
                   for (final code in currencyNames.keys)
                     DropdownMenuItem(
                       value: code,
-                      child: SizedBox(
-                        width: 170,
-                        child: Text(
-                          '$code · ${currencyNames[code]}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      child: Text(
+                        '$code · ${currencyNames[code]}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                 ],
@@ -1528,6 +1739,7 @@ class _MovementDialogState extends State<_MovementDialog> {
               ),
               const SizedBox(height: 12),
               TextField(
+                key: const Key('movement-note'),
                 controller: _note,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(labelText: 'Nota (opcional)'),
@@ -1542,7 +1754,12 @@ class _MovementDialogState extends State<_MovementDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancelar'),
         ),
-        FilledButton(onPressed: _save, child: const Text('Guardar movimiento')),
+        FilledButton(
+          onPressed: _save,
+          child: Text(
+            widget.initialId == null ? 'Guardar movimiento' : 'Guardar cambios',
+          ),
+        ),
       ],
     );
   }

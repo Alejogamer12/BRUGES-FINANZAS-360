@@ -1,5 +1,5 @@
 #define ProductName "BRUGES FINANZAS 360"
-#define ProductVersion "1.2.0"
+#define ProductVersion "1.3.0"
 #define BuildDir "..\build\windows\x64\runner\Release"
 
 [Setup]

@@ -3,62 +3,47 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0d2921" />
-    <meta name="description" content="Descargas de BRUGES FINANZAS 360 para Android y Windows." />
-    <title>BRUGES FINANZAS 360 · Descargas</title>
+    <meta name="theme-color" content="#087a50" />
+    <meta name="description" content="Descarga BRUGES FINANZAS 360 para Android y Windows." />
+    <title>Descarga BRUGES FINANZAS 360</title>
     <link rel="icon" type="image/svg+xml" href="./bruges_finanzas_360.svg" />
     <style>
-      :root { color-scheme: dark; --green: #0d2921; --mint: #bde6ce; --gold: #d4b568; --ivory: #f4f0e5; }
+      :root { color-scheme: light; --green: #087a50; --green-dark: #07583c; --ink: #183329; --muted: #596a62; --line: #dce7df; }
       * { box-sizing: border-box; }
-      body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 28px; color: var(--ivory); font: 16px/1.55 system-ui, sans-serif; background: radial-gradient(ellipse at 20% 0%, #285542, transparent 52%), #0b1713; }
-      main { width: min(760px, 100%); padding: clamp(24px, 6vw, 54px); border: 1px solid #517563; border-radius: 28px; background: linear-gradient(145deg, #15382d, #101e19 70%); box-shadow: 0 24px 80px #0008; }
-      header { display: flex; gap: 20px; align-items: center; }
-      header img { width: 82px; height: 82px; border-radius: 20px; }
-      h1 { margin: 0; font-size: clamp(1.5rem, 5vw, 2.3rem); line-height: 1.1; }
-      .eyebrow { margin: 0 0 8px; color: var(--gold); font-size: .75rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
-      .intro { margin: 26px 0; color: #d3ded6; }
-      .release { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 24px 0 14px; }
-      .badge { padding: 4px 10px; border-radius: 999px; color: #15251e; background: var(--mint); font-size: .78rem; font-weight: 750; }
-      .badge.beta { color: #32270c; background: #e7c875; }
-      .downloads { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
-      .download { display: block; padding: 16px 18px; border: 1px solid #809b8b; border-radius: 15px; color: var(--ivory); background: #1d4938; text-decoration: none; transition: transform .15s, border-color .15s; }
-      .download:hover, .download:focus-visible { transform: translateY(-2px); border-color: var(--gold); outline: none; }
-      .download strong, .download small { display: block; }
-      .download small { margin-top: 3px; color: #cadacf; }
-      .status, .notice { color: #c5d2ca; font-size: .9rem; }
-      .notice { margin-top: 24px; padding: 14px 16px; border-left: 3px solid var(--gold); background: #ffffff0a; }
-      footer { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 18px; font-size: .9rem; }
-      a { color: #d5c184; }
-      @media (max-width: 480px) { body { padding: 14px; } header { align-items: flex-start; } header img { width: 64px; height: 64px; border-radius: 16px; } }
+      body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; color: var(--ink); background: linear-gradient(180deg, #f2f8f3 0%, #fff 66%); font: 16px/1.55 system-ui, sans-serif; }
+      main { width: min(650px, 100%); padding: clamp(26px, 6vw, 54px); border: 1px solid var(--line); border-radius: 26px; background: #fff; box-shadow: 0 18px 60px #123b2112; text-align: center; }
+      .brand { width: 82px; height: 82px; margin: 0 auto 20px; border-radius: 20px; }
+      .eyebrow { margin: 0 0 8px; color: var(--green); font-size: .78rem; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
+      h1 { margin: 0; color: #173c2d; font-size: clamp(1.85rem, 6vw, 2.8rem); line-height: 1.12; }
+      .intro { max-width: 470px; margin: 16px auto 28px; color: var(--muted); font-size: 1.05rem; }
+      .downloads { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      .download { min-height: 70px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; border: 2px solid var(--green); border-radius: 15px; color: white; background: var(--green); font-size: 1rem; font-weight: 750; text-decoration: none; transition: background .15s, transform .15s; }
+      .download:hover, .download:focus-visible { border-color: var(--green-dark); background: var(--green-dark); transform: translateY(-2px); outline: 3px solid #087a5030; outline-offset: 2px; }
+      .download[aria-disabled="true"] { opacity: .55; pointer-events: none; }
+      .status { min-height: 24px; margin: 16px 0 0; color: var(--muted); font-size: .9rem; }
+      .beta { margin: 14px 0 0; padding: 10px 14px; border-radius: 10px; color: #604b17; background: #fff6d9; font-size: .9rem; }
+      .upcoming { margin: 28px 0 0; padding-top: 18px; border-top: 1px solid var(--line); color: #738178; font-weight: 650; }
+      [hidden] { display: none !important; }
+      @media (max-width: 520px) { body { padding: 14px; } main { padding: 28px 20px; } .downloads { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
     <main>
-      <header>
-        <img src="./bruges_finanzas_360.svg" alt="Icono BRUGES FINANZAS 360" />
-        <div><p class="eyebrow">Finanzas personales</p><h1>BRUGES FINANZAS 360</h1></div>
-      </header>
-      <p class="intro">Descarga la versión publicada para tu equipo. Los botones se actualizan automáticamente con los archivos de la versión estable más reciente; si aún no existe una versión estable, se muestran los archivos de prueba más recientes.</p>
-      <section aria-live="polite">
-        <div class="release"><strong id="version">Buscando versión…</strong><span id="channel" class="badge" hidden></span></div>
-        <div id="downloads" class="downloads"></div>
-        <p id="status" class="status">Consultando GitHub Releases.</p>
-      </section>
-      <p id="notice" class="notice" hidden></p>
-      <footer>
-        <a href="https://github.com/Alejogamer12/BRUGES-FINANZAS-360">Código fuente</a>
-        <a href="https://github.com/Alejogamer12/BRUGES-FINANZAS-360/releases">Historial de versiones</a>
-      </footer>
+      <img class="brand" src="./bruges_finanzas_360.svg" alt="BRUGES FINANZAS 360" />
+      <p class="eyebrow">Tus finanzas, bajo tu control</p>
+      <h1>Descarga BRUGES FINANZAS 360</h1>
+      <p class="intro">Descarga la versión publicada para tu equipo.</p>
+      <div id="downloads" class="downloads">
+        <a id="android" class="download" href="#" aria-disabled="true">Android — Descargar APK</a>
+        <a id="windows" class="download" href="#" aria-disabled="true">Windows — Descargar Windows</a>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite">Buscando la versión disponible…</p>
+      <p id="beta" class="beta" hidden>Versión beta: todavía está en pruebas.</p>
+      <p class="upcoming">iPhone, iPad y Mac — Próximamente</p>
     </main>
     <script>
       const repo = 'Alejogamer12/BRUGES-FINANZAS-360';
-      const files = [
-        ['BRUGES-FINANZAS-360.apk', 'Android · APK universal', 'Teléfonos y tabletas compatibles'],
-        ['BRUGES-FINANZAS-360-Setup.exe', 'Windows · Instalador', 'Windows x64'],
-        ['BRUGES-FINANZAS-360.aab', 'Google Play · AAB', 'Paquete para publicación']
-      ];
-      const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-      async function loadRelease() {
+      async function loadDownloads() {
         const status = document.querySelector('#status');
         try {
           const headers = {'Accept': 'application/vnd.github+json'};
@@ -68,29 +53,27 @@
             release = await response.json();
           } else {
             response = await fetch(`https://api.github.com/repos/${repo}/releases?per_page=5`, {headers});
-            if (!response.ok) throw new Error(`GitHub respondió ${response.status}`);
+            if (!response.ok) throw new Error('No se pudo consultar la descarga.');
             const releases = await response.json();
             release = releases.find((item) => !item.draft);
           }
-          if (!release) throw new Error('Todavía no hay archivos publicados.');
-          document.querySelector('#version').textContent = release.name || release.tag_name;
-          const channel = document.querySelector('#channel');
-          channel.hidden = false;
-          channel.textContent = release.prerelease ? 'BETA · PRUEBAS' : 'ESTABLE';
-          if (release.prerelease) channel.classList.add('beta');
+          if (!release) throw new Error('Todavía no hay una versión publicada.');
           const assets = new Map(release.assets.map((asset) => [asset.name, asset.browser_download_url]));
-          const available = files.filter(([name]) => assets.has(name));
-          document.querySelector('#downloads').innerHTML = available.map(([name, title, description]) => `<a class="download" href="${escapeHtml(assets.get(name))}"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(description)}</small></a>`).join('');
-          if (!available.length) throw new Error('La versión publicada no contiene los instaladores esperados.');
-          document.querySelector('#notice').hidden = !release.prerelease;
-          document.querySelector('#notice').textContent = release.prerelease ? 'Esta versión es una beta de compatibilidad. La firma Android es de depuración y el servicio en la nube no está desplegado. No la uses para almacenar información financiera sensible.' : '';
-          status.textContent = `Publicada el ${new Date(release.published_at).toLocaleDateString('es-CO')}. ${available.length} archivo(s) disponibles.`;
+          const androidUrl = assets.get('BRUGES-FINANZAS-360.apk');
+          const windowsUrl = assets.get('BRUGES-FINANZAS-360-Setup.exe');
+          if (!androidUrl || !windowsUrl) throw new Error('Los instaladores aún no están disponibles.');
+          for (const [selector, url] of [['#android', androidUrl], ['#windows', windowsUrl]]) {
+            const link = document.querySelector(selector);
+            link.href = url;
+            link.removeAttribute('aria-disabled');
+          }
+          document.querySelector('#beta').hidden = !release.prerelease;
+          status.textContent = release.name || release.tag_name;
         } catch (error) {
-          document.querySelector('#version').textContent = 'Descargas temporalmente no disponibles';
-          status.textContent = `${error.message} Puedes revisar las versiones en GitHub.`;
+          status.textContent = error.message;
         }
       }
-      loadRelease();
+      loadDownloads();
     </script>
   </body>
 </html>

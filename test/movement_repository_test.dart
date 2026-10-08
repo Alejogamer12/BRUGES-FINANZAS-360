@@ -99,13 +99,125 @@ void main() {
     final persisted =
         jsonDecode(await file.readAsString()) as Map<String, dynamic>;
 
-    expect(persisted['version'], 2);
+    expect(persisted['version'], 3);
     expect(saved, hasLength(1));
     expect(saved.single.id, 'legacy-1');
     expect(saved.single.amountMinor, 9800);
     expect(saved.single.currency, 'COP');
     expect(saved.single.note, 'Registro anterior');
   });
+
+  test(
+    'migrates release version 2 without losing notification metadata',
+    () async {
+      final file = File(
+        '${directory.path}${Platform.pathSeparator}movements.json',
+      );
+      await directory.create(recursive: true);
+      await file.writeAsString(
+        jsonEncode({
+          'version': 2,
+          'movements': [
+            {
+              'id': 'old-detected',
+              'kind': 'income',
+              'amountMinor': 125000,
+              'currency': 'COP',
+              'category': 'Transferencia detectada · Nequi',
+              'note': 'Aviso reportado',
+              'createdAt': '2026-10-08T10:30:00.000Z',
+              'syncState': 'pending',
+              'origin': 'notification',
+              'verification': 'unverified',
+              'sourceName': 'Nequi',
+              'counterparty': 'Ana',
+              'reference': 'NQ-45',
+              'method': 'Transferencia',
+              'reportedStatus': 'Aprobada',
+            },
+          ],
+        }),
+      );
+
+      final repository = await MovementRepository.open(directory);
+      final saved = (await repository.listMovements()).single;
+      final persisted = jsonDecode(await file.readAsString()) as Map;
+
+      expect(persisted['version'], 3);
+      expect(persisted['changeHistory'], isEmpty);
+      expect(saved.id, 'old-detected');
+      expect(saved.sourceName, 'Nequi');
+      expect(saved.counterparty, 'Ana');
+      expect(saved.reference, 'NQ-45');
+      expect(saved.reportedStatus, 'Aprobada');
+      expect(saved.verification, MovementVerification.unverified);
+    },
+  );
+
+  test(
+    'audits manual edits and refuses changes to external source rows',
+    () async {
+      final repository = await MovementRepository.open(directory);
+      final manual = MoneyMovement(
+        id: 'manual-audit',
+        kind: MovementKind.expense,
+        amountMinor: 25000,
+        category: 'Mercado',
+        note: 'Compra inicial',
+        createdAt: DateTime.utc(2026, 10, 8),
+      );
+      final imported = MoneyMovement(
+        id: 'bank-original',
+        kind: MovementKind.income,
+        amountMinor: 50000,
+        category: 'Ingreso reportado',
+        sourceName: 'Nequi',
+        origin: MovementOrigin.notification,
+        verification: MovementVerification.unverified,
+        createdAt: DateTime.utc(2026, 10, 8),
+      );
+      await repository.addMovement(manual);
+      await repository.addMovement(imported);
+
+      final changed = MoneyMovement(
+        id: manual.id,
+        kind: manual.kind,
+        amountMinor: 27500,
+        category: 'Mercado',
+        note: 'Compra corregida',
+        createdAt: manual.createdAt,
+      );
+      expect(await repository.updateManualMovement(changed), isTrue);
+      expect(
+        await repository.updateManualMovement(
+          MoneyMovement(
+            id: imported.id,
+            kind: MovementKind.income,
+            amountMinor: 51000,
+            category: 'Editado',
+            createdAt: imported.createdAt,
+            origin: MovementOrigin.notification,
+            verification: MovementVerification.userReviewed,
+          ),
+        ),
+        isFalse,
+      );
+
+      final reopened = await MovementRepository.open(directory);
+      final saved = await reopened.listMovements();
+      final savedManual = saved.singleWhere((row) => row.id == manual.id);
+      final savedImported = saved.singleWhere((row) => row.id == imported.id);
+      final revisions = await reopened.listMovementChanges(manual.id);
+      expect(savedManual.amountMinor, 27500);
+      expect(savedManual.note, 'Compra corregida');
+      expect(savedImported.amountMinor, 50000);
+      expect(savedImported.category, 'Ingreso reportado');
+      expect(revisions, hasLength(1));
+      expect(revisions.single.before['amountMinor'], 25000);
+      expect(revisions.single.after['amountMinor'], 27500);
+      expect(revisions.single.before['note'], 'Compra inicial');
+    },
+  );
 
   test('rejects an unsupported currency code', () {
     expect(
@@ -149,7 +261,7 @@ void main() {
       final repository = await MovementRepository.open(directory);
 
       expect((await repository.listMovements()).single.id, 'recovered-1');
-      expect(jsonDecode(await primary.readAsString())['version'], 2);
+      expect(jsonDecode(await primary.readAsString())['version'], 3);
     },
   );
 }

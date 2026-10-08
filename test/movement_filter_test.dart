@@ -87,4 +87,28 @@ void main() {
 
     expect(filtered.map((movement) => movement.id), ['nequi-row']);
   });
+
+  test('searches movement amounts in the formatted major-unit value', () {
+    final rows = [
+      MoneyMovement(
+        id: 'market',
+        kind: MovementKind.expense,
+        amountMinor: 25000,
+        category: 'Mercado',
+        createdAt: DateTime.utc(2026, 10, 8),
+      ),
+      MoneyMovement(
+        id: 'transport',
+        kind: MovementKind.expense,
+        amountMinor: 3200,
+        category: 'Transporte',
+        createdAt: DateTime.utc(2026, 10, 7),
+      ),
+    ];
+
+    expect(
+      filterMovements(rows, text: '25.000').map((movement) => movement.id),
+      ['market'],
+    );
+  });
 }
